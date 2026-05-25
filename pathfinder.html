@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pathfinder Case Study — David Graves</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink:     #0F1923;
+      --ink2:    #2D3748;
+      --muted:   #64748B;
+      --border:  #E2E8F0;
+      --bg:      #FAFAFA;
+      --white:   #FFFFFF;
+      --accent:  #1A56DB;
+      --accent2: #0E9F6E;
+      --amber:   #D97706;
+      --tag-bg:  #EFF6FF;
+      --tag-fg:  #1E40AF;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+    a { color: inherit; text-decoration: none; }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 48px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-name { font-size: 1rem; font-weight: 800; color: var(--ink); }
+    .nav-name span { color: var(--accent); }
+    .nav-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.82rem; font-weight: 600; color: var(--muted);
+      transition: color 0.2s;
+    }
+    .nav-back:hover { color: var(--ink); }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, #0F1923 0%, #1a2a3a 100%);
+      padding: 80px 48px 64px;
+    }
+    .hero-inner { max-width: 860px; margin: 0 auto; }
+    .hero-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+    .hero-title { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; color: white; letter-spacing: -1px; line-height: 1.1; margin-bottom: 16px; }
+    .hero-sub { font-family: 'Lora', serif; font-style: italic; font-size: 1.1rem; color: #94A3B8; margin-bottom: 36px; line-height: 1.6; }
+    .hero-kpis { display: flex; gap: 40px; flex-wrap: wrap; }
+    .hero-kpi { border-left: 3px solid var(--accent); padding-left: 16px; }
+    .hero-kpi-num { font-size: 1.8rem; font-weight: 900; color: white; line-height: 1; }
+    .hero-kpi-label { font-size: 0.72rem; color: #94A3B8; margin-top: 4px; }
+
+    /* CONTENT */
+    .content { max-width: 860px; margin: 0 auto; padding: 64px 48px 80px; }
+
+    /* SECTION BLOCKS */
+    .cs-section { margin-bottom: 56px; }
+    .cs-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    .cs-heading { font-size: 1.4rem; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; margin-bottom: 16px; line-height: 1.3; }
+    .cs-body { font-size: 1rem; color: var(--ink2); line-height: 1.8; }
+    .cs-body p { margin-bottom: 16px; }
+    .cs-body p:last-child { margin-bottom: 0; }
+
+    /* PULL QUOTE */
+    .pull-quote {
+      border-left: 4px solid var(--accent);
+      padding: 20px 28px;
+      margin: 32px 0;
+      background: var(--white);
+      border-radius: 0 8px 8px 0;
+    }
+    .pull-quote p { font-family: 'Lora', serif; font-size: 1.1rem; font-style: italic; color: var(--ink); line-height: 1.7; margin: 0; }
+
+    /* STAT ROW */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 32px 0; }
+    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 24px; text-align: center; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: var(--ink); line-height: 1; }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+
+    /* PROCESS STEPS */
+    .steps { display: flex; flex-direction: column; gap: 0; margin: 24px 0; }
+    .step { display: flex; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .step:last-child { border-bottom: none; }
+    .step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: white; font-size: 0.82rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+    .step-title { font-size: 0.95rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .step-desc { font-size: 0.88rem; color: var(--ink2); line-height: 1.6; }
+
+    /* TECH STACK */
+    .tech-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 24px 0; }
+    .tech-card { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; }
+    .tech-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .tech-value { font-size: 0.88rem; font-weight: 600; color: var(--ink); }
+
+    /* AWARDS */
+    .awards-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 24px 0; }
+    .award-pill { display: flex; align-items: center; gap: 10px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; }
+    .award-icon { font-size: 1.4rem; }
+    .award-name { font-size: 0.85rem; font-weight: 700; color: var(--ink); }
+    .award-sub { font-size: 0.72rem; color: var(--muted); }
+
+    /* TAGS */
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--border); }
+    .tag { background: var(--tag-bg); color: var(--tag-fg); padding: 5px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+
+    /* CTA */
+    .cta-block { background: var(--ink); border-radius: 12px; padding: 40px; text-align: center; margin-top: 48px; }
+    .cta-block h3 { font-size: 1.3rem; font-weight: 800; color: white; margin-bottom: 10px; }
+    .cta-block p { font-size: 0.9rem; color: #94A3B8; margin-bottom: 24px; }
+    .cta-btn { display: inline-block; background: var(--accent); color: white; padding: 12px 28px; border-radius: 7px; font-weight: 700; font-size: 0.95rem; transition: background 0.2s; }
+    .cta-btn:hover { background: #1648C8; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .hero { padding: 60px 20px 48px; }
+      .content { padding: 48px 20px 64px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-name">David <span>Graves</span></div>
+  <a href="index.html" class="nav-back">&#8592; Back to portfolio</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">Case Study · Project 01</div>
+    <h1 class="hero-title">Pathfinder: How I Built a Workflow System Nobody Asked For</h1>
+    <p class="hero-sub">No budget. No project charter. One developer. A problem I heard firsthand as a financial consultant — and fixed when I got the chance.</p>
+    <div class="hero-kpis">
+      <div class="hero-kpi"><div class="hero-kpi-num">120K+</div><div class="hero-kpi-label">Cases resolved lifetime</div></div>
+      <div class="hero-kpi"><div class="hero-kpi-num">$15M+</div><div class="hero-kpi-label">Complaint savings</div></div>
+      <div class="hero-kpi"><div class="hero-kpi-num">24 hrs</div><div class="hero-kpi-label">Resolution time (was 3-5 days)</div></div>
+      <div class="hero-kpi"><div class="hero-kpi-num">200+</div><div class="hero-kpi-label">Cases handled daily</div></div>
+      <div class="hero-kpi"><div class="hero-kpi-num">6 yrs</div><div class="hero-kpi-label">In production</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ORIGIN -->
+  <div class="cs-section">
+    <div class="cs-label">The Origin</div>
+    <h2 class="cs-heading">I heard the problem before I had the authority to fix it.</h2>
+    <div class="cs-body">
+      <p>I spent five years as a financial consultant at TIAA sitting across from clients. I heard their frustration firsthand. A client waiting on funds to cover a mortgage payment. A trade that couldn't execute. A letter that never arrived. The front office team would find a solution — and then hit a wall.</p>
+      <p>There was no structured handoff to back and middle office teams. Resolution meant knowing the right person to email. That email often went to the wrong team. The right team would eventually get looped in, but by then the client had called back twice. Cases that should have resolved in a day were taking 3 to 5 business days — if they resolved at all.</p>
+      <p>When I was promoted into a management role, I had a choice: accept the broken process or do something about it. I decided to build a fix.</p>
+    </div>
+    <div class="pull-quote">
+      <p>"The pain was distributed across every layer of the organization. Clients missed mortgage payments. The front office was fielding the same question on repeat. The back office was drowning in misdirected requests with no context. Nobody owned the handoff."</p>
+    </div>
+  </div>
+
+  <!-- THE PROBLEM -->
+  <div class="cs-section">
+    <div class="cs-label">The Problem</div>
+    <h2 class="cs-heading">Three teams. Zero coordination. Real consequences for clients.</h2>
+    <div class="cs-body">
+      <p>The breakdown happened at the handoff between front office and back/middle office teams. When a client-facing associate identified a solution to an existing issue, there was no system to route it to the right resolution team. The process was informal: "who do you know in operations?" That question turned into an email — often to the wrong person — which then got forwarded, ignored, or lost.</p>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-num" style="color:#DC2626;">3-5</div>
+        <div class="stat-label">Business days to resolve a case before Pathfinder</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:#DC2626;">0</div>
+        <div class="stat-label">Structured routing or tracking in place</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:#DC2626;">3</div>
+        <div class="stat-label">Teams feeling the pain: front, middle, and back office</div>
+      </div>
+    </div>
+    <div class="cs-body">
+      <p><strong>Customers</strong> felt it most — delayed transactions, missed payments, repeated calls with no resolution.</p>
+      <p><strong>Front office associates</strong> were fielding the same client questions on repeat because nothing was getting fixed downstream.</p>
+      <p><strong>Back and middle office teams</strong> were constantly chasing misdirected requests — random shots in the dark from the front office with no context about what was actually needed.</p>
+    </div>
+  </div>
+
+  <!-- WHAT I BUILT -->
+  <div class="cs-section">
+    <div class="cs-label">What I Built</div>
+    <h2 class="cs-heading">A TurboTax-style routing system. Built on the side. No budget.</h2>
+    <div class="cs-body">
+      <p>Pathfinder is a SharePoint-backed ASPX workflow management system that routes client escalation cases to the correct resolution team based on a structured intake process. The front-end experience works like TurboTax — a client-facing associate opens a case, answers a series of questions about the nature of the problem, and the system narrows down which back or middle office team should own the resolution.</p>
+      <p>The right team gets a routed notification with full context. No more "who do you know in operations." No more emails to the wrong person. Every case is tracked, timestamped, and visible.</p>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-card"><div class="tech-label">Front End</div><div class="tech-value">SharePoint Online (ASPX)</div></div>
+      <div class="tech-card"><div class="tech-label">Back End</div><div class="tech-value">SharePoint List database</div></div>
+      <div class="tech-card"><div class="tech-label">Routing Engine</div><div class="tech-value">Power Automate workflows</div></div>
+      <div class="tech-card"><div class="tech-label">Notifications</div><div class="tech-value">Automated email routing</div></div>
+      <div class="tech-card"><div class="tech-label">Team</div><div class="tech-value">1 developer + me</div></div>
+      <div class="tech-card"><div class="tech-label">Budget</div><div class="tech-value">None. Built on the side.</div></div>
+    </div>
+    <div class="pull-quote">
+      <p>"We weren't specifically funded. I worked directly with one developer to build this organically — alongside our regular jobs — because we both saw the gap and knew we could fill it."</p>
+    </div>
+  </div>
+
+  <!-- THE BUILD -->
+  <div class="cs-section">
+    <div class="cs-label">The Build</div>
+    <h2 class="cs-heading">Six months to production. Six years in operation.</h2>
+    <div class="cs-body">
+      <p>The first version took about six months to get right. We started small — two back office teams, 20 people on the resolution side, 60 on the front end submitting cases. We worked out the routing logic, refined the intake questions, and fixed what broke.</p>
+      <p>Buy-in came from senior managing directors across front, middle, and back office. It wasn't hard to get — the pain was visible and the solution was obvious. Nobody said no for long.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div><div class="step-title">Identified the gap</div><div class="step-desc">Heard the problem firsthand as a financial consultant. Understood it from the client's perspective before I ever had the authority to fix it.</div></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div><div class="step-title">Built the first version with one developer</div><div class="step-desc">No budget, no project charter. Designed the intake logic and routing architecture, worked directly with a developer to build it on SharePoint Online with Power Automate.</div></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div><div class="step-title">Piloted with 2 teams, 80 users</div><div class="step-desc">Started with two back office teams and 60 front-end users. Worked out the kinks over six months before expanding.</div></div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div><div class="step-title">Secured SMD buy-in and scaled</div><div class="step-desc">Gained sponsorship from senior managing directors across all three office layers. Expanded to 25+ resolution teams and 1,000+ front-end users.</div></div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div><div class="step-title">Ongoing product ownership for 6+ years</div><div class="step-desc">Continued as Product Owner through multiple iterations. The system still runs today, handling 200+ cases daily across payments, trades, letters, and more.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="cs-section">
+    <div class="cs-label">The Results</div>
+    <h2 class="cs-heading">120,000+ cases. $15M+ saved. Still running.</h2>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--accent2);">120K+</div>
+        <div class="stat-label">Cases resolved over the platform lifetime</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--accent2);">$15M+</div>
+        <div class="stat-label">Savings at $65 per complaint avoided</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--accent2);">24 hrs</div>
+        <div class="stat-label">Average resolution time (down from 3-5 days)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--accent2);">1,000+</div>
+        <div class="stat-label">Front-end users across the organization</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--accent2);">25+</div>
+        <div class="stat-label">Back and middle office resolution teams</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--accent2);">200+</div>
+        <div class="stat-label">Cases handled every single day</div>
+      </div>
+    </div>
+    <div class="cs-body">
+      <p>For a client waiting on funds to cover a mortgage payment, the drop from 3-5 days to 24 hours is the difference between a bad week and a crisis. That's what the numbers represent — not just efficiency gains, but real outcomes for real people.</p>
+      <p>In 2025 alone, Pathfinder resolved 8,283 cases and prevented 1,430+ potential complaints. The platform handles payments, trades, letters, account corrections, and more. It became the enterprise standard for client escalation management at TIAA.</p>
+    </div>
+    <div class="awards-row">
+      <div class="award-pill">
+        <div class="award-icon">🏆</div>
+        <div><div class="award-name">Gold Stevie Award</div><div class="award-sub">Customer Service and Technology Innovation</div></div>
+      </div>
+      <div class="award-pill">
+        <div class="award-icon">⭐</div>
+        <div><div class="award-name">NICSA NOVA Award</div><div class="award-sub">Operational Excellence</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT I LEARNED -->
+  <div class="cs-section">
+    <div class="cs-label">What I Learned</div>
+    <h2 class="cs-heading">The best process improvements don't come from project charters.</h2>
+    <div class="cs-body">
+      <p>Pathfinder wasn't funded. It wasn't assigned. Nobody asked me to build it. I built it because I understood the problem at ground level — I'd lived it as a financial consultant — and I had the initiative to do something about it when I got the chance.</p>
+      <p>That's the thing about process improvement: the people closest to the problem usually know the solution. The gap is almost never insight. It's ownership. Someone has to decide the problem is worth solving and go do it.</p>
+      <p>Six years later, 1,000+ people use something I built on the side with no budget. That's the version of program management I believe in.</p>
+    </div>
+  </div>
+
+  <div class="tags">
+    <span class="tag">Product Ownership</span>
+    <span class="tag">Workflow Design</span>
+    <span class="tag">SharePoint Online</span>
+    <span class="tag">Power Automate</span>
+    <span class="tag">Process Improvement</span>
+    <span class="tag">Change Management</span>
+    <span class="tag">Lean Methodology</span>
+    <span class="tag">Stakeholder Alignment</span>
+    <span class="tag">Financial Services</span>
+  </div>
+
+  <div class="cta-block">
+    <h3>Want to talk through the details?</h3>
+    <p>I'm happy to walk through the architecture, the intake logic, or how I'd apply this kind of thinking to a new problem.</p>
+    <a href="mailto:digger.woods@gmail.com" class="cta-btn">Get in touch</a>
+  </div>
+
+</div>
+
+<footer style="background:var(--ink);padding:32px 48px;">
+  <div style="max-width:860px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <a href="index.html" style="font-size:0.9rem;font-weight:800;color:white;">David Graves</a>
+    <div style="font-size:0.75rem;color:#64748B;">Enterprise Program Manager · AI/ML · Transformation · Denver, CO</div>
+  </div>
+</footer>
+
+</body>
+</html>
